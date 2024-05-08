@@ -1,104 +1,121 @@
-# Import necessary libraries
 import streamlit as st
 import pandas as pd
-import plotly.express as px
 from faker import Faker
 import random
+import plotly.express as px
 
 # Set page configuration
 st.set_page_config(page_title="Federal vs Non-Federal Sales Analysis", layout="wide", initial_sidebar_state="expanded")
 
+# CSS for styling
+st.markdown("""
+<style>
+[data-testid="block-container"] {
+    padding-left: 2rem;
+    padding-right: 2rem;
+    padding-top: 1rem;
+    padding-bottom: 0rem;
+    margin-bottom: -7rem;
+}
+[data-testid="stVerticalBlock"] {
+    padding-left: 0rem;
+    padding-right: 0rem;
+}
+[data-testid="stMetric"] {
+    background-color: #393939;
+    text-align: center;
+    padding: 15px 0;
+}
+[data-testid="stMetricLabel"] {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+[data-testid="stMetricDeltaIcon-Up"], [data-testid="stMetricDeltaIcon-Down"] {
+    position: relative;
+    left: 38%;
+    transform: translateX(-50%);
+}
+</style>
+""", unsafe_allow_html=True)
+
 # Faker setup for data generation
 fake = Faker()
-
-# Define product categories and example products
-product_categories = {
-    'Infrastructure': ['Server', 'Storage', 'Network Device', 'Cloud Service'],
-    'Enterprise': ['Hyperconverged System', 'Cloud Platform', 'Security Service', 'App Modernization Service'],
-    'Consumer': ['Laptop', 'Desktop', 'Monitor', 'Gaming System']
-}
-
-# Define U.S. states for sales mapping
 us_states = ['AL', 'AK', 'AZ', 'AR', 'CA', 'CO', 'CT', 'DE', 'FL', 'GA', 'HI', 'ID', 'IL', 'IN', 'IA',
              'KS', 'KY', 'LA', 'ME', 'MD', 'MA', 'MI', 'MN', 'MS', 'MO', 'MT', 'NE', 'NV', 'NH', 'NJ',
              'NM', 'NY', 'NC', 'ND', 'OH', 'OK', 'OR', 'PA', 'RI', 'SC', 'SD', 'TN', 'TX', 'UT', 'VT',
              'VA', 'WA', 'WV', 'WI', 'WY']
+product_categories = ['Server', 'Storage', 'Network Device', 'Cloud Service', 'Laptop', 'Desktop', 'Monitor', 'Gaming System']
 
-@st.cache_data
 def generate_data(num_records):
     data = []
     for _ in range(num_records):
         state = random.choice(us_states)
-        category = random.choice(list(product_categories.keys()))
-        product = random.choice(product_categories[category])
+        product = random.choice(product_categories)
         sector_choice = random.choice(['Federal', 'Non-Federal'])
         data.append({
-            'Customer Name': fake.company(),
             'State': state,
-            'Email': fake.email(),
-            'Product Category': category,
-            'Product Name': product,
-            'Purchase Date': fake.date_between(start_date='-2y', end_date='today').isoformat(),
-            'ASUs': random.randint(1, 10),
-            'Price': random.uniform(10000, 100000),
-            'Warranty Start': fake.date_between(start_date='-1y', end_date='today').isoformat(),
-            'Warranty End': fake.date_between(start_date='today', end_date='+3y').isoformat(),
-            'Service Type': random.choice(['Standard', 'Extended']),
-            'Sector': sector_choice
+            'Product': product,
+            'Sales': random.uniform(10000, 100000),
+            'Sector': sector_choice,
+            'Year': random.randint(2010, 2022)
         })
     return pd.DataFrame(data)
 
 # Generate and load data
-customer_data = generate_data(500)
-customer_data['Purchase Date'] = pd.to_datetime(customer_data['Purchase Date'])
+customer_data = generate_data(1000)
 
-# Sidebar for filtering by sector
+# Sidebar for filtering by year
 with st.sidebar:
-    st.title('Sales Dashboard')
-    sector_options = ['Federal', 'Non-Federal', 'Both']
-    selected_sector = st.selectbox('Select Sector', sector_options)
-    if selected_sector != 'Both':
-        filtered_data = customer_data[customer_data['Sector'] == selected_sector]
-    else:
-        filtered_data = customer_data
+    st.title("Filter Options")
+    years = sorted(customer_data['Year'].unique())
+    selected_year = st.selectbox("Select Year", years)
+    data_filtered = customer_data[customer_data['Year'] == selected_year]
 
-# Dashboard Main Panel
-col1, col2, col3 = st.columns(3)
-with col1:
-    # Choropleth map showing sales distribution by state
-    state_sales = filtered_data.groupby('State')['Price'].sum().reset_index()
-    choropleth_fig = px.choropleth(
+# Main dashboard layout
+st.title("Federal vs Non-Federal Sales Distribution")
+
+# Main visualization - Choropleth Map in the center
+col1, col2, col3 = st.columns([1, 3, 1])
+with col2:
+    st.subheader("Sales Distribution Across the USA")
+    state_sales = data_filtered.groupby('State')['Sales'].sum().reset_index()
+    fig_map = px.choropleth(
         state_sales,
         locations='State',
         locationmode='USA-states',
-        color='Price',
+        color='Sales',
         color_continuous_scale='Blues',
         scope='usa',
-        labels={'Price': 'Total Sales'},
-        title='Sales Distribution Across the USA'
+        labels={'Sales': 'Total Sales'},
+        title='Total Sales per State'
     )
-    choropleth_fig.update_layout(margin={"r":0, "t":30, "l":0, "b":0})
-    st.plotly_chart(choropleth_fig, use_container_width=True)
+    fig_map.update_geos(bgcolor='rgba(0,0,0,0)', lakecolor='rgba(0,0,0,0)')
+    fig_map.update_layout(margin={"r":0, "t":0, "l":0, "b":0}, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
+    st.plotly_chart(fig_map, use_container_width=True)
 
-with col2:
-    # Line Chart for Sales Over Time
-    monthly_sales = filtered_data.groupby(filtered_data['Purchase Date'].dt.to_period("M"))['Price'].sum().reset_index()
-    monthly_sales['Month'] = monthly_sales['Purchase Date'].dt.strftime('%Y-%m')
-    line_fig = px.line(
-        monthly_sales,
-        x='Month',
-        y='Price',
-        title='Monthly Sales Trends'
+# Product distribution bar chart
+with col1:
+    st.subheader("Product Sales Distribution")
+    product_sales = data_filtered.groupby('Product')['Sales'].sum().reset_index()
+    fig_product = px.bar(
+        product_sales,
+        x='Sales',
+        y='Product',
+        orientation='h',
+        title='Sales by Product Category'
     )
-    st.plotly_chart(line_fig, use_container_width=True)
+    st.plotly_chart(fig_product, use_container_width=True)
 
-    with col3:
-        # Bar Chart for Sales Distribution by Product Category
-        category_sales = filtered_data.groupby('Product Category')['Price'].sum().reset_index()
-        bar_fig = px.bar(
-            category_sales,
-            x='Product Category',
-            y='Price',
-            title='Sales Distribution by Product Category'
-        )
-        st.plotly_chart(bar_fig, use_container_width=True)
+with col3:
+    st.subheader("Sales Metrics")
+    total_sales = data_filtered['Sales'].sum()
+    fed_sales = data_filtered[data_filtered['Sector'] == 'Federal']['Sales'].sum()
+    non_fed_sales = data_filtered[data_filtered['Sector'] == 'Non-Federal']['Sales'].sum()
+
+    # Display metrics
+    st.metric("Total Sales", f"${total_sales:,.2f}")
+    st.metric("Federal Sales", f"${fed_sales:,.2f}")
+    st.metric("Non-Federal Sales", f"${non_fed_sales:,.2f}")
+
+
