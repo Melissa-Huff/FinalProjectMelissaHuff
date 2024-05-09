@@ -3,9 +3,10 @@ import pandas as pd
 from faker import Faker
 import random
 import plotly.express as px
+import plotly.graph_objects as go
 
 # Set page configuration
-st.set_page_config(page_title="Federal vs Non-Federal Sales Analysis", layout="wide", initial_sidebar_state="expanded")
+st.set_page_config(page_title="TechTrend Analytics Federal vs Non-Federal Sales Analysis", layout="wide", initial_sidebar_state="expanded")
 
 # CSS for styling
 st.markdown("""
@@ -36,6 +37,13 @@ st.markdown("""
     left: 38%;
     transform: translateX(-50%);
 }
+.gray-box {
+    background-color: #333;  /* Dark gray background */
+    color: #fff;  /* White text */
+    padding: 10px;
+    border-radius: 5px;
+    margin-top: 5px;  /* Reduced margin to bring closer to the donut chart */
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -45,19 +53,26 @@ us_states = ['AL', 'AK', 'AZ', 'AR', 'CA', 'CO', 'CT', 'DE', 'FL', 'GA', 'HI', '
              'KS', 'KY', 'LA', 'ME', 'MD', 'MA', 'MI', 'MN', 'MS', 'MO', 'MT', 'NE', 'NV', 'NH', 'NJ',
              'NM', 'NY', 'NC', 'ND', 'OH', 'OK', 'OR', 'PA', 'RI', 'SC', 'SD', 'TN', 'TX', 'UT', 'VT',
              'VA', 'WA', 'WV', 'WI', 'WY']
-product_categories = ['Server', 'Storage', 'Network Device', 'Cloud Service', 'Laptop', 'Desktop', 'Monitor', 'Gaming System']
+product_categories = {
+    'Enterprise': ['Data Center', 'Cloud Solutions', 'Enterprise Software'],
+    'Infrastructure': ['Storage', 'Network Device', 'Servers'],
+    'Client': ['Laptops', 'Desktops', 'Monitors', 'Printers']
+}
+lines_of_business = ['All', 'Enterprise', 'Infrastructure', 'Client']
 
 def generate_data(num_records):
     data = []
     for _ in range(num_records):
+        line_of_business = random.choice(lines_of_business[1:])  # Exclude 'All' from data generation
+        product = random.choice(product_categories[line_of_business])
         state = random.choice(us_states)
-        product = random.choice(product_categories)
         sector_choice = random.choice(['Federal', 'Non-Federal'])
         data.append({
             'State': state,
             'Product': product,
             'Sales': random.uniform(10000, 100000),
             'Sector': sector_choice,
+            'Line of Business': line_of_business,
             'Year': random.randint(2010, 2022)
         })
     return pd.DataFrame(data)
@@ -65,18 +80,33 @@ def generate_data(num_records):
 # Generate and load data
 customer_data = generate_data(1000)
 
-# Sidebar for filtering by year
+# Sidebar for filtering
 with st.sidebar:
-    st.title("Filter Options")
+    st.title("Dashboard Overview")
+    st.text("""
+        Welcome to the TechTrend Analytics Dashboard! As a leader in technology solutions for the federal government and commercial sectors, this dashboard provides key insights into our sales distribution.
+
+        Features:
+        - **Choropleth Map**: Displays sales across the USA, highlighting regional market trends.
+        - **Product Sales Distribution**: Analyzes performance by product category.
+        - **Sales Metrics**: Compares federal vs. non-federal sales, showcasing our government engagement.
+
+        Use the filters to customize the data for detailed analysis and strategic planning. Adjust the year and business lines to tailor the view to your needs.
+    """)
+
     years = sorted(customer_data['Year'].unique())
     selected_year = st.selectbox("Select Year", years)
-    data_filtered = customer_data[customer_data['Year'] == selected_year]
+    selected_lines = st.multiselect("Select Line of Business", lines_of_business, default=['All'])
+    if 'All' in selected_lines:
+        data_filtered = customer_data[customer_data['Year'] == selected_year]
+    else:
+        data_filtered = customer_data[(customer_data['Year'] == selected_year) & (customer_data['Line of Business'].isin(selected_lines))]
 
 # Main dashboard layout
-st.title("Federal vs Non-Federal Sales Distribution")
+st.title("TechTrend Analytics - Federal vs Non-Federal Sales Distribution")
 
 # Main visualization - Choropleth Map in the center
-col1, col2, col3 = st.columns([1, 3, 1])
+col1, col2, col3 = st.columns([1, 4, 2])
 with col2:
     st.subheader("Sales Distribution Across the USA")
     state_sales = data_filtered.groupby('State')['Sales'].sum().reset_index()
@@ -107,15 +137,18 @@ with col1:
     )
     st.plotly_chart(fig_product, use_container_width=True)
 
+# Sales Metrics - Donut chart with total sales annotation
 with col3:
     st.subheader("Sales Metrics")
-    total_sales = data_filtered['Sales'].sum()
-    fed_sales = data_filtered[data_filtered['Sector'] == 'Federal']['Sales'].sum()
-    non_fed_sales = data_filtered[data_filtered['Sector'] == 'Non-Federal']['Sales'].sum()
-
-    # Display metrics
-    st.metric("Total Sales", f"${total_sales:,.2f}")
-    st.metric("Federal Sales", f"${fed_sales:,.2f}")
-    st.metric("Non-Federal Sales", f"${non_fed_sales:,.2f}")
-
-
+    sales_data = {
+        'Federal Sales': data_filtered[data_filtered['Sector'] == 'Federal']['Sales'].sum(),
+        'Non-Federal Sales': data_filtered[data_filtered['Sector'] == 'Non-Federal']['Sales'].sum()
+    }
+    total_sales = sum(sales_data.values())
+    fig_donut = go.Figure(data=[go.Pie(labels=list(sales_data.keys()), values=list(sales_data.values()), hole=.5)])
+    fig_donut.update_layout(
+        title_text="Sales Distribution"
+    )
+    st.plotly_chart(fig_donut, use_container_width=True)
+    # Display total sales below the donut chart in a styled dark gray box
+    st.markdown(f"<div class='gray-box'>Total Sales: ${total_sales:,.2f}</div>", unsafe_allow_html=True)
