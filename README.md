@@ -50,7 +50,8 @@ This project is licensed under the [NAME HERE] License - see the LICENSE.md file
 
 Inspiration, code snippets, etc.
 * [awesome-readme](https://github.com/matiassingers/awesome-readme)
-* https://getbootstrap.com/
-* https://django.com/
+* https://streamlit.io/
+* https://faker.readthedocs.io/en/master/
+* https://blog.streamlit.io/crafting-a-dashboard-app-in-python-using-streamlit/
 * [Automatetheboringstuff.com](https://automatetheboringstuff.com/2e/chapter9/)
 * https://www.youtube.com/@profzeller
