@@ -14,7 +14,7 @@ testing purposes. The dashboard allows users to view sales by region and product
 
 ## Getting Started
 
-
+streamlit run /Users/melissahuff/PycharmProjects/FinalProjectMelissaHuff/main.py
 
 
 ### Install requirements with pip

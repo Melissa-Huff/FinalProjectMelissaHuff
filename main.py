@@ -87,11 +87,11 @@ with st.sidebar:
         Welcome to the TechTrend Analytics Dashboard! 
 
         Features:
-        - Displays sales across the USA, highlighting regional market trends.
-        - Analyzes performance by product category.
-        - Compares federal vs. non-federal sales, showcasing our government engagement.
+        - Displays sales across the USA
+        - Analyzes performance by product 
+        - Compares federal vs. non-federal
 
-        Use the filters to customize the data for detailed analysis and strategic planning. 
+        Use the filters to customize
     """)
 
     years = sorted(customer_data['Year'].unique())
