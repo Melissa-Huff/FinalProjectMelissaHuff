@@ -84,14 +84,14 @@ customer_data = generate_data(1000)
 with st.sidebar:
     st.title("Dashboard Overview")
     st.text("""
-        Welcome to the TechTrend Analytics Dashboard! As a leader in technology solutions for the federal government and commercial sectors, this dashboard provides key insights into our sales distribution.
+        Welcome to the TechTrend Analytics Dashboard! 
 
         Features:
-        - **Choropleth Map**: Displays sales across the USA, highlighting regional market trends.
-        - **Product Sales Distribution**: Analyzes performance by product category.
-        - **Sales Metrics**: Compares federal vs. non-federal sales, showcasing our government engagement.
+        - Displays sales across the USA, highlighting regional market trends.
+        - Analyzes performance by product category.
+        - Compares federal vs. non-federal sales, showcasing our government engagement.
 
-        Use the filters to customize the data for detailed analysis and strategic planning. Adjust the year and business lines to tailor the view to your needs.
+        Use the filters to customize the data for detailed analysis and strategic planning. 
     """)
 
     years = sorted(customer_data['Year'].unique())
